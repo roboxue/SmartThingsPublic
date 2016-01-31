@@ -41,11 +41,12 @@ metadata {
 		capability "Switch"
 		capability "Actuator"
 		capability "Battery"
-		capability "Illuminance Measurement"
 		capability "Temperature Measurement"
-		capability "Relative Humidity Measurement"
 
-		command "ledOn"
+
+		command "recordOn"
+        command "recordOff"
+        command "ledOn"
 		command "ledOff"
 		command "focusOn"
 		command "focusOff"
@@ -73,9 +74,9 @@ metadata {
 			state("taking", label: 'Taking...', action: "Image Capture.take", icon: "st.camera.take-photo", backgroundColor: "#79b821")
 		}
 
-		standardTile("record", "device.switch", width: 1, height: 1) {
-			state("recordOff", label: 'Record Off', action:"switch.on", icon:"st.switches.light.off", backgroundColor: "#ffffff")
-			state("recordOn", label: 'Record On', action:"switch.off", icon:"st.switches.light.on", backgroundColor: "#79b821")
+		standardTile("record", "device.record", width: 1, height: 1) {
+			state("recordOff", label: 'Record Off', action:"recordOn", icon:"st.switches.light.off", backgroundColor: "#ffffff")
+			state("recordOn", label: 'Record On', action:"recordOff", icon:"st.switches.light.on", backgroundColor: "#79b821")
 		}
 
 		standardTile("led", "device.led", width: 1, height: 1) {
@@ -98,45 +99,6 @@ metadata {
 			state("nightVisionOn", label: 'Night Vision On', action:"nightVisionOff", icon:"st.switches.light.on", backgroundColor: "#79b821")
 		}
 
-		valueTile("battery", "device.battery", inactiveLabel: false, decoration: "flat") {
-			state("battery", label:'${currentValue}% battery', unit:"${unit}",
-				backgroundColors:[
-					[value: 0..4, color: "#FF0000"],
-					[value: 5..19, color: "#FFA500"],
-					[value: 20..49, color: "#FFFF00"],
-					[value: 50..100, color: "#5DFC0A"]
-				]
-			)
-		}
-
-		valueTile("temperature", "device.temperature") {
-			state("temperature", label:'${currentValue}°', unit:"${unit}",
-				backgroundColors:[
-					[value: 31, color: "#153591"],
-					[value: 44, color: "#1e9cbb"],
-					[value: 59, color: "#90d2a7"],
-					[value: 74, color: "#44b621"],
-					[value: 84, color: "#f1d801"],
-					[value: 95, color: "#d04e00"],
-					[value: 96, color: "#bc2323"]
-				]
-			)
-		}
-
-		valueTile("light", "device.illuminance", decoration: "flat") {
-			state("light", label:'${currentValue} lux', unit:"${unit}")
-		}
-
-		valueTile("humidity", "device.humidity", decoration: "flat") {
-			state("humidity", label:'${currentValue}% humidity', unit:"${unit}",
-				backgroundColors:[
-					[value: 0..19, color: "#FF0000"],
-					[value: 20..49, color: "#FFFF00"],
-					[value: 50..100, color: "#5DFC0A"]
-				]
-			)
-		}
-
 		standardTile("refresh", "device.switch", inactiveLabel: false, decoration: "flat") {
 			state("default", label:"", action:"refresh", icon:"st.secondary.refresh")
 		}
@@ -145,9 +107,9 @@ metadata {
 			state("present", labelIcon:"st.presence.tile.mobile-present", backgroundColor:"#53a7c0")
 			state("not present", labelIcon:"st.presence.tile.mobile-not-present", backgroundColor:"#ebeef2")
 		}
-
-		main(["camera"])
-		details(["cameraDetails","take","record","led","focus","overlay","nightVision","battery","temperature","light","humidity","refresh","presence"])
+        
+		main(["led","presence"])
+		details(["cameraDetails","take","record","led","focus","overlay","nightVision","refresh","presence"])
 	}
 }
 
@@ -180,11 +142,11 @@ private take() {
 	}
 }
 
-def on(theSwitch="record") {
+def on(theSwitch="led") {
 	def sUrl
 	switch ( theSwitch ) {
-		case "led":
-			sUrl = "enabletorch"
+		case "record":
+			sUrl = "/startvideo?force=1"
 			break
 
 		case "focus":
@@ -200,7 +162,7 @@ def on(theSwitch="record") {
 			break
 
 		default:
-			sUrl = "/startvideo?force=1"
+			sUrl = "enabletorch"
 	}
 
 	httpGet("http://${username}:${password}@${url}:${port}/${sUrl}"){
@@ -210,11 +172,11 @@ def on(theSwitch="record") {
 
 }
 
-def off(theSwitch="record") {
+def off(theSwitch="led") {
 	def sUrl
 	switch ( theSwitch ) {
-		case "led":
-			sUrl = "disabletorch"
+		case "record":
+			sUrl = "stopvideo?force=1"
 			break
 
 		case "focus":
@@ -230,7 +192,7 @@ def off(theSwitch="record") {
 			break
 
 		default:
-			sUrl = "stopvideo?force=1"
+			sUrl = "disabletorch"
 	}
 
 	httpGet("http://${username}:${password}@${url}:${port}/${sUrl}"){
@@ -239,6 +201,10 @@ def off(theSwitch="record") {
 	}
 
 }
+
+def recordOn() { on("record") }
+
+def recordOff() { off("record") }
 
 def ledOn() { on("led") }
 
@@ -274,29 +240,19 @@ def getSensors() {
 
 	log.debug "Params = ${params}"
 
-	def theSensor
-	def theUnit
-	def theData
+    def battery
+    def temperature
 
 	try {
 		httpGet(params) { 
 			response -> log.debug "Start httpGet"
-			response.data.each {
-				key,value -> theSensor = key
-				theUnit = value.unit
-				if (value.data[0][1].size() == 1) {
-					theData = value.data[0][1].first() 
-					if (theSensor == "battery_level") {theSensor = "battery"}
-					if (theSensor == "ambient_temp") {
-						theSensor = "temperature"
-						theUnit = "F"
-						theData = cToF(theData as Integer)
-					}
-					log.info "name: ${theSensor}, unit: ${theUnit}, value: ${theData as Integer}"
-					sendEvent(name:"${theSensor}", unit:"${theUnit}", value: theData as Integer)
-				} else { theData = value.data[0][1] }
-				log.debug "${theSensor}: ${theUnit} ${theData}"
-			}
+            battery = response.data.battery_level.data[0][1][0]
+            log.debug "battery: ${battery}, unit: ${response.data.battery_level.unit}"
+            sendEvent(name: "battery", unit: "${response.data.battery_level.unit}", value: "${battery}")
+            
+            temperature = response.data.temp.data[0][1][0]
+            log.debug "temperature: ${temperature}, unit: ${response.data.temp.unit}"
+            sendEvent(name: "temperature", unit: "${response.data.temp.unit}", value: "${temperature}")
 		}
 	}
 	catch(e) { log.debug "$e" }
