@@ -42,7 +42,7 @@ metadata {
 		capability "Actuator"
 		capability "Battery"
 		capability "Temperature Measurement"
-
+		capability "Illuminance Measurement"
 
 		command "recordOn"
         command "recordOff"
@@ -84,17 +84,17 @@ metadata {
 			state("ledOn", label: 'Led On', action:"ledOff", icon:"st.switches.light.on", backgroundColor: "#79b821")
 		}
 
-		standardTile("focus", "device.focus", width: 1, height: 1) {
+		standardTile("focus", "device.focus", width: 1, height: 1, decoration:"flat") {
 			state("focusOff", label: 'Focus Off', action:"focusOn", icon:"st.switches.light.off", backgroundColor: "#ffffff")
 			state("focusOn", label: 'Focus On', action:"focusOff", icon:"st.switches.light.on", backgroundColor: "#79b821")
 		}
 
-		standardTile("overlay", "device.overlay", width: 1, height: 1) {
+		standardTile("overlay", "device.overlay", width: 1, height: 1, decoration:"flat") {
 			state("overlayOff", label: 'Overlay Off', action:"overlayOn", icon:"st.switches.light.off", backgroundColor: "#ffffff")
 			state("overlayOn", label: 'Overlay On', action:"overlayOff", icon:"st.switches.light.on", backgroundColor: "#79b821")
 		}
 
-		standardTile("nightVision", "device.nightVision", width: 1, height: 1) {
+		standardTile("nightVision", "device.nightVision", width: 1, height: 1, decoration:"flat") {
 			state("nightVisionOff", label: 'Night Vision Off', action:"nightVisionOn", icon:"st.switches.light.off", backgroundColor: "#ffffff")
 			state("nightVisionOn", label: 'Night Vision On', action:"nightVisionOff", icon:"st.switches.light.on", backgroundColor: "#79b821")
 		}
@@ -108,8 +108,24 @@ metadata {
 			state("not present", labelIcon:"st.presence.tile.mobile-not-present", backgroundColor:"#ebeef2")
 		}
         
+        valueTile("battery", "device.battery", width: 1, height: 1) {
+			state("battery", label:'${currentValue}% battery', unit:"${unit}")
+        }
+        
+        valueTile("temperature", "device.temperature", width: 1, height: 1) {
+			state("temperature", label:'${currentValue} °C', unit:"${unit}")
+        }
+        
+        valueTile("illuminance", "device.illuminance") {
+			state("illuminance", label:'${currentValue} lux', unit:"${unit}")
+		}
+        
+        valueTile("pressure", "device.pressure") {
+			state("pressure", label:'${currentValue} mbar', unit:"${unit}")
+		}
+        
 		main(["led","presence"])
-		details(["cameraDetails","take","record","led","focus","overlay","nightVision","refresh","presence"])
+		details(["cameraDetails","take","record","led","focus","overlay","nightVision","refresh","presence","battery","temperature","illuminance","pressure"])
 	}
 }
 
@@ -242,20 +258,26 @@ def getSensors() {
 
     def battery
     def temperature
+    def illuminance
+    def pressure
 
 	try {
 		httpGet(params) { 
 			response -> log.debug "Start httpGet"
             battery = response.data.battery_level.data[0][1][0]
-            log.debug "battery: ${battery}, unit: ${response.data.battery_level.unit}"
             sendEvent(name: "battery", unit: "${response.data.battery_level.unit}", value: "${battery}")
             
             temperature = response.data.temp.data[0][1][0]
-            log.debug "temperature: ${temperature}, unit: ${response.data.temp.unit}"
             sendEvent(name: "temperature", unit: "${response.data.temp.unit}", value: "${temperature}")
+            
+            illuminance = response.data.light.data[0][1][0]
+            sendEvent(name: "illuminance", unit: "${response.data.light.unit}", value: "${illuminance}")
+            
+            pressure = response.data.pressure.data[0][1][0]
+            sendEvent(name: "pressure", unit: "${response.data.pressure.unit}", value: "${pressure}")
 		}
 	}
-	catch(e) { log.debug "$e" }
+	catch(e) { log.warn "$e" }
 }
 
 def cToF(temp) {
