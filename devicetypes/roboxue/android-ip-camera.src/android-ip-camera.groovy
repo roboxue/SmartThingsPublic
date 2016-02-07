@@ -50,8 +50,6 @@ metadata {
 		command "ledOff"
 		command "focusOn"
 		command "focusOff"
-		command "overlayOn"
-		command "overlayOff"
 		command "nightVisionOn"
 		command "nightVisionOff"
 		command "refresh"
@@ -62,24 +60,24 @@ metadata {
 		status "not present": "presence: 0"
 	}
 
-	tiles {
-		carouselTile("cameraDetails", "device.image", width: 3, height: 2) { }
+	tiles(scale: 2) {
+		carouselTile("cameraDetails", "device.image", width: 6, height: 4) { }
 
 		standardTile("camera", "device.image", width: 1, height: 1, canChangeIcon: false, inactiveLabel: true, canChangeBackground: true) {
 			state("default", label: '', action: "Image Capture.take", icon: "st.camera.camera", backgroundColor: "#FFFFFF")
 		}
 
-		standardTile("take", "device.image", width: 1, height: 1, canChangeIcon: false, inactiveLabel: true, canChangeBackground: false, decoration: "flat") {
+		standardTile("take", "device.image", width: 2, height: 2, canChangeIcon: false, inactiveLabel: true, canChangeBackground: false, decoration: "flat") {
 			state("take", label: 'Take Photo', action: "Image Capture.take", icon: "st.camera.take-photo", nextState:"taking")
 			state("taking", label: 'Taking...', action: "Image Capture.take", icon: "st.camera.take-photo", backgroundColor: "#79b821")
 		}
 
-		standardTile("record", "device.record", width: 1, height: 1) {
+		standardTile("record", "device.record", width: 2, height: 2) {
 			state("recordOff", label: 'Record Off', action:"recordOn", icon:"st.switches.light.off", backgroundColor: "#ffffff")
 			state("recordOn", label: 'Record On', action:"recordOff", icon:"st.switches.light.on", backgroundColor: "#79b821")
 		}
 
-		standardTile("led", "device.led", width: 1, height: 1) {
+		standardTile("led", "device.led", width: 2, height: 2) {
 			state("ledOff", label: 'Led Off', action:"ledOn", icon:"st.switches.light.off", backgroundColor: "#ffffff")
 			state("ledOn", label: 'Led On', action:"ledOff", icon:"st.switches.light.on", backgroundColor: "#79b821")
 		}
@@ -89,17 +87,12 @@ metadata {
 			state("focusOn", label: 'Focus On', action:"focusOff", icon:"st.switches.light.on", backgroundColor: "#79b821")
 		}
 
-		standardTile("overlay", "device.overlay", width: 1, height: 1, decoration:"flat") {
-			state("overlayOff", label: 'Overlay Off', action:"overlayOn", icon:"st.switches.light.off", backgroundColor: "#ffffff")
-			state("overlayOn", label: 'Overlay On', action:"overlayOff", icon:"st.switches.light.on", backgroundColor: "#79b821")
-		}
-
 		standardTile("nightVision", "device.nightVision", width: 1, height: 1, decoration:"flat") {
 			state("nightVisionOff", label: 'Night Vision Off', action:"nightVisionOn", icon:"st.switches.light.off", backgroundColor: "#ffffff")
 			state("nightVisionOn", label: 'Night Vision On', action:"nightVisionOff", icon:"st.switches.light.on", backgroundColor: "#79b821")
 		}
 
-		standardTile("refresh", "device.switch", inactiveLabel: false, decoration: "flat") {
+		standardTile("refresh", "device.switch", width: 1, height: 1, inactiveLabel: false, decoration: "flat") {
 			state("default", label:"", action:"refresh", icon:"st.secondary.refresh")
 		}
         
@@ -116,16 +109,16 @@ metadata {
 			state("temperature", label:'${currentValue} °C', unit:"${unit}")
         }
         
-        valueTile("illuminance", "device.illuminance") {
+        valueTile("illuminance", "device.illuminance", width: 1, height: 1) {
 			state("illuminance", label:'${currentValue} lux', unit:"${unit}")
 		}
         
-        valueTile("pressure", "device.pressure") {
+        valueTile("pressure", "device.pressure", width: 1, height: 1) {
 			state("pressure", label:'${currentValue} mbar', unit:"${unit}")
 		}
         
-		main(["led","presence"])
-		details(["cameraDetails","take","record","led","focus","overlay","nightVision","refresh","presence","battery","temperature","illuminance","pressure"])
+		main "camera"
+		details(["cameraDetails","take","record","led","presence","focus","nightVision","refresh","battery","temperature","illuminance","pressure"])
 	}
 }
 
@@ -229,10 +222,6 @@ def ledOff() { off("led") }
 def focusOn() { on("focus") }
 
 def focusOff() { off("focus") }
-
-def overlayOn() { on("overlay") }
-
-def overlayOff() { off("overlay") }
 
 def nightVisionOn() { on("nightVision") }
 
